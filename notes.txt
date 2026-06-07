@@ -1,0 +1,29 @@
+# 1) Simulasi dulu (default DRY_RUN=1):
+bash clean_library_general.sh
+
+# 2) Eksekusi dengan batas umur 7 hari:
+DRY_RUN=0 AGE_DAYS=7 bash clean_library_general.sh
+
+# 3) Super-bersih (hapus semua file cache/log tanpa lihat umur):
+DRY_RUN=0 AGE_DAYS=0 bash clean_library_general.sh
+
+# 4) Sertakan Safari juga:
+DRY_RUN=0 AGE_DAYS=7 INCLUDE_BROWSERS_SAFARI=1 bash clean_library_general.sh
+
+# 5) Hapus data Wuthering Waves (±43GB) — hanya jika yakin:
+DRY_RUN=0 FORCE_DELETE_WUTHERING=1 bash clean_library_general.sh
+
+sudo shutdown -h now
+
+launchctl setenv MTL_HUD_ENABLED 1
+
+docker-compose down -v
+docker-compose up --build
+
+brew uses --installed <formula>
+#enable the battery limit
+sudo launchctl load /Library/LaunchDaemons/com.battery.chargecap.plist
+sudo env TERMINFO= battery charge 80
+#disable the battery limit
+sudo launchctl unload /Library/LaunchDaemons/com.battery.chargecap.plist
+sudo env TERMINFO= battery charge 100
