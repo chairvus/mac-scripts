@@ -44,12 +44,12 @@ fi
 APP_PATH="/Applications/${APP_NAME}.app"
 
 echo -e "\n${BOLD}${CYAN}=== Clean Uninstall: ${APP_NAME} ===${NC}"
-$DRY_RUN && echo -e "${YELLOW}[DRY RUN — tidak ada yang dihapus]${NC}"
+$DRY_RUN && echo -e "${YELLOW}[DRY RUN — nothing will be deleted]${NC}"
 echo ""
 
 # --- Kill app if running ---
 if pgrep -xi "$APP_NAME" &>/dev/null; then
-  echo -e "${YELLOW}⚠ App sedang berjalan. Menutup...${NC}"
+  echo -e "${YELLOW}⚠ App is running. Closing...${NC}"
   if ! $DRY_RUN; then
     osascript -e "tell application \"${APP_NAME}\" to quit" 2>/dev/null || pkill -xi "$APP_NAME" 2>/dev/null || true
     sleep 2
@@ -61,9 +61,9 @@ if [[ -z "$BUNDLE_ID" ]]; then
   if [[ -d "$APP_PATH" ]]; then
     BUNDLE_ID=$(defaults read "${APP_PATH}/Contents/Info" CFBundleIdentifier 2>/dev/null || true)
     [[ -n "$BUNDLE_ID" ]] && echo -e "${GREEN}✓ Bundle ID: ${BUNDLE_ID}${NC}" \
-                          || echo -e "${YELLOW}⚠ Bundle ID tidak terdeteksi. Pencarian pakai nama.${NC}"
+                          || echo -e "${YELLOW}⚠ Could not detect bundle ID. Falling back to name-based search.${NC}"
   else
-    echo -e "${YELLOW}⚠ App tidak ditemukan di /Applications. Lanjut bersihkan sisa file...${NC}"
+    echo -e "${YELLOW}⚠ App not found in /Applications. Continuing to clean up leftover files...${NC}"
   fi
 fi
 
@@ -81,7 +81,6 @@ SYS_PATHS=()
 add_path() {
   local p="$1"
   local target_array="$2"
-  # Normalize path
   p="${p%/}"
   [[ -z "$p" ]] && return
   [[ -n "${SEEN[$p]}" ]] && return
@@ -119,12 +118,10 @@ SCAN_DIRS=(
 
 for dir in "${SCAN_DIRS[@]}"; do
   [[ ! -d "$dir" ]] && continue
-  # Match by bundle ID
   if [[ -n "$BUNDLE_ID" ]]; then
     while IFS= read -r p; do add_path "$p" user; done \
       < <(find "$dir" -maxdepth 1 -iname "*${BUNDLE_ID}*" 2>/dev/null)
   fi
-  # Match by short name
   while IFS= read -r p; do add_path "$p" user; done \
     < <(find "$dir" -maxdepth 1 -iname "*${SHORT_NAME}*" 2>/dev/null)
 done
@@ -160,13 +157,12 @@ fi
 TOTAL_FOUND=$(( ${#USER_PATHS[@]} + ${#SYS_PATHS[@]} ))
 
 if [[ $TOTAL_FOUND -eq 0 ]]; then
-  echo -e "${GREEN}✓ Tidak ada file ditemukan untuk \"${APP_NAME}\". Sudah bersih!${NC}\n"
+  echo -e "${GREEN}✓ No files found for \"${APP_NAME}\". Already clean!${NC}\n"
   exit 0
 fi
 
-echo -e "${BOLD}File/folder yang akan dihapus:${NC}\n"
+echo -e "${BOLD}Files/folders to be deleted:${NC}\n"
 
-TOTAL_SIZE=0
 if [[ ${#USER_PATHS[@]} -gt 0 ]]; then
   echo -e "${CYAN}User-level:${NC}"
   for p in "${USER_PATHS[@]}"; do
@@ -176,7 +172,7 @@ if [[ ${#USER_PATHS[@]} -gt 0 ]]; then
 fi
 
 if [[ ${#SYS_PATHS[@]} -gt 0 ]]; then
-  echo -e "\n${CYAN}System-level (butuh sudo):${NC}"
+  echo -e "\n${CYAN}System-level (requires sudo):${NC}"
   for p in "${SYS_PATHS[@]}"; do
     SIZE=$(du -sh "$p" 2>/dev/null | cut -f1)
     echo -e "  ${RED}✗${NC} $p ${DIM}(${SIZE})${NC}"
@@ -190,7 +186,7 @@ if $DRY_RUN; then
   if [[ -n "$BUNDLE_ID" ]]; then
     MATCHED_DOMAINS=$(defaults domains 2>/dev/null | tr ',' '\n' | tr -d ' ' | grep -i "$BUNDLE_ID" || true)
     if [[ -n "$MATCHED_DOMAINS" ]]; then
-      echo -e "${CYAN}Defaults database entries (akan dihapus):${NC}"
+      echo -e "${CYAN}Defaults database entries (will be deleted):${NC}"
       while IFS= read -r domain; do
         [[ -z "$domain" ]] && continue
         echo -e "  ${RED}✗${NC} $domain"
@@ -198,15 +194,15 @@ if $DRY_RUN; then
       echo ""
     fi
   fi
-  echo -e "${YELLOW}[DRY RUN] Selesai. Jalankan tanpa --dry-run untuk hapus beneran.${NC}\n"
+  echo -e "${YELLOW}[DRY RUN] Done. Run without --dry-run to actually delete.${NC}\n"
   exit 0
 fi
 
 # -------------------------------------------------------
 # CONFIRM & DELETE
 # -------------------------------------------------------
-read -rp "$(echo -e ${BOLD}"Hapus semua? [y/N]: "${NC})" CONFIRM
-[[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]] && echo -e "${YELLOW}Dibatalkan.${NC}\n" && exit 0
+read -rp "$(echo -e ${BOLD}"Delete everything? [y/N]: "${NC})" CONFIRM
+[[ "$CONFIRM" != "y" && "$CONFIRM" != "Y" ]] && echo -e "${YELLOW}Cancelled.${NC}\n" && exit 0
 
 echo ""
 
@@ -215,20 +211,20 @@ for p in "${USER_PATHS[@]}"; do
   if rm -rf "$p" 2>/dev/null; then
     echo -e "  ${GREEN}✓${NC} $p"
   else
-    echo -e "  ${RED}✗ Gagal:${NC} $p"
+    echo -e "  ${RED}✗ Failed:${NC} $p"
   fi
 done
 
 # Delete system-level
 if [[ ${#SYS_PATHS[@]} -gt 0 ]]; then
   echo ""
-  read -rp "$(echo -e ${BOLD}"Hapus system-level files dengan sudo? [y/N]: "${NC})" SUDO_CONFIRM
+  read -rp "$(echo -e ${BOLD}"Delete system-level files with sudo? [y/N]: "${NC})" SUDO_CONFIRM
   if [[ "$SUDO_CONFIRM" == "y" || "$SUDO_CONFIRM" == "Y" ]]; then
     for p in "${SYS_PATHS[@]}"; do
       if sudo rm -rf "$p" 2>/dev/null; then
         echo -e "  ${GREEN}✓${NC} $p"
       else
-        echo -e "  ${RED}✗ Gagal:${NC} $p"
+        echo -e "  ${RED}✗ Failed:${NC} $p"
       fi
     done
   fi
@@ -237,21 +233,20 @@ fi
 # --- Clear defaults database ---
 if [[ -n "$BUNDLE_ID" ]]; then
   echo ""
-  # Check all matching domains (app bisa punya beberapa domain, e.g. com.microsoft.Excel + com.microsoft.Excel.plist)
   MATCHED_DOMAINS=$(defaults domains 2>/dev/null | tr ',' '\n' | tr -d ' ' | grep -i "$BUNDLE_ID" || true)
   if [[ -n "$MATCHED_DOMAINS" ]]; then
-    echo -e "${CYAN}Defaults database entries:${NC}"
+    echo -e "${CYAN}Clearing defaults database entries:${NC}"
     while IFS= read -r domain; do
       [[ -z "$domain" ]] && continue
       if defaults delete "$domain" 2>/dev/null; then
-        echo -e "  ${GREEN}✓ Cleared defaults:${NC} $domain"
+        echo -e "  ${GREEN}✓ Cleared:${NC} $domain"
       else
-        echo -e "  ${YELLOW}⚠ Tidak bisa hapus defaults:${NC} $domain"
+        echo -e "  ${YELLOW}⚠ Could not clear:${NC} $domain"
       fi
     done <<< "$MATCHED_DOMAINS"
   else
-    echo -e "${DIM}ℹ Tidak ada defaults database entry untuk ${BUNDLE_ID}${NC}"
+    echo -e "${DIM}ℹ No defaults database entries found for ${BUNDLE_ID}${NC}"
   fi
 fi
 
-echo -e "\n${GREEN}${BOLD}✓ Done! \"${APP_NAME}\" sudah clean uninstall.${NC}\n"
+echo -e "\n${GREEN}${BOLD}✓ Done! \"${APP_NAME}\" has been cleanly uninstalled.${NC}\n"
