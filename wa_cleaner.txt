@@ -1,5 +1,0 @@
-bash -lc 'rm -rf ~/Library/Containers/net.whatsapp.WhatsApp/Data/*'
-bash -lc 'rm -rf ~/Library/Group\ Containers/group.net.whatsapp.WhatsApp/*'
-bash -lc 'rm -rf ~/Library/Caches/net.whatsapp.WhatsApp*'
-bash -lc 'rm -rf ~/Library/Saved\ Application\ State/net.whatsapp.WhatsApp.savedState'
-
