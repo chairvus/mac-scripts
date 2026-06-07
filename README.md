@@ -1,92 +1,92 @@
 # mac-scripts 🧹
 
-Kumpulan bash scripts untuk maintenance & cleanup macOS.
+A collection of bash scripts for macOS maintenance & cleanup.
 
 ---
 
 ## Scripts
 
-### `clean_uninstall.sh` — Clean Uninstall App
-Hapus app beserta semua file sisa (containers, caches, preferences, defaults database, dll) secara menyeluruh.
+### `clean_uninstall.sh` — Clean App Uninstaller
+Removes an app along with all leftover files (containers, caches, preferences, defaults database, etc.) thoroughly.
 
-**Fitur:**
-- Auto-detect bundle ID dari app
-- Pakai `mdfind` untuk lacak semua file terkait app (lebih akurat dari AppCleaner)
-- Scan: Containers, Group Containers, App Support, Caches, Logs, Preferences, LaunchAgents, Saved State, HTTPStorages, WebKit, `/private/var/folders`, defaults database
-- Kill app otomatis sebelum uninstall
-- Dry-run mode (preview tanpa hapus)
-- Deduplikasi hasil
-- Handle system-level files dengan sudo terpisah
+**Features:**
+- Auto-detects bundle ID from the app
+- Uses `mdfind` to track all app-related files (more accurate than AppCleaner)
+- Scans: Containers, Group Containers, App Support, Caches, Logs, Preferences, LaunchAgents, Saved State, HTTPStorages, WebKit, `/private/var/folders`, defaults database
+- Kills the app automatically before uninstalling
+- Dry-run mode (preview without deleting)
+- Deduplicates results
+- Handles system-level files with sudo separately
 
 ```bash
-# Preview dulu (aman)
+# Preview first (safe)
 bash clean_uninstall.sh "Spotify" --dry-run
 
-# Hapus dengan auto-detect bundle ID
+# Uninstall with auto-detected bundle ID
 bash clean_uninstall.sh "Spotify"
 
-# Hapus dengan bundle ID manual (lebih akurat)
+# Uninstall with manual bundle ID (more accurate)
 bash clean_uninstall.sh "Microsoft Excel" com.microsoft.Excel
 ```
 
 ---
 
 ### `clean_mac.sh` — macOS Storage Cleaner
-Bersihkan storage macOS secara menyeluruh dengan kontrol granular per-modul. Default mode: dry-run (aman).
+Cleans macOS storage thoroughly with granular per-module control. Default mode: dry-run (safe).
 
-**Yang dibersihkan:**
+**What gets cleaned:**
 - System caches & logs (`~/Library/Caches`, `~/Library/Logs`)
 - Saved Application State
 - Container caches
-- Electron app caches (Discord, WhatsApp, Signal, dll)
-- Zen browser caches (dengan proteksi cookies, login, passwords, bookmarks)
-- Steam caches (game data aman)
+- Electron app caches (Discord, WhatsApp, Signal, etc.)
+- Zen browser caches (with protection for cookies, login, passwords, bookmarks)
+- Steam caches (game data stays safe)
 - Python `__pycache__` & `.pyc`
 - Colima/Docker (`docker system prune`, builder, volumes)
-- Time Machine snapshots (opsional)
+- Time Machine snapshots (optional)
 
-**Dilindungi (tidak disentuh):**
+**Protected (never touched):**
 - `~/.config`
 - Zen: cookies, login state, passwords, bookmarks, IndexedDB
 
 ```bash
-# Dry-run (default) — hanya laporan, tidak hapus
+# Dry-run (default) — report only, nothing deleted
 bash clean_mac.sh
 
-# Eksekusi sungguhan
+# Actually execute
 DRY_RUN=0 bash clean_mac.sh
 
-# Custom: hanya bersihkan Python caches, skip yang lain
+# Custom: only clean Python caches, skip everything else
 DRY_RUN=0 INCLUDE_PYTHON_CACHES=1 INCLUDE_SYSTEM_CACHES_LOGS=0 bash clean_mac.sh
 
-# Thin Time Machine snapshots (perlu sudo)
+# Thin Time Machine snapshots (requires sudo)
 DRY_RUN=0 THIN_TM_SNAPSHOTS=1 bash clean_mac.sh
 ```
 
 **Environment variables:**
 
-| Variable | Default | Keterangan |
+| Variable | Default | Description |
 |---|---|---|
-| `DRY_RUN` | `1` | `0` = eksekusi, `1` = simulasi |
-| `AGE_DAYS` | `7` | Hapus file lebih tua dari N hari |
+| `DRY_RUN` | `1` | `0` = execute, `1` = simulate |
+| `AGE_DAYS` | `7` | Delete files older than N days |
 | `INCLUDE_SYSTEM_CACHES_LOGS` | `1` | System caches & logs |
 | `INCLUDE_PYTHON_CACHES` | `1` | `__pycache__` & `.pyc` |
 | `INCLUDE_COLIMA_PRUNE` | `1` | Docker/Colima prune |
 | `INCLUDE_DEV_TOOL_CACHES` | `0` | brew cleanup, pip cache |
-| `FORCE_RESET_COLIMA_VM` | `0` | Wipe seluruh Colima VM |
+| `FORCE_RESET_COLIMA_VM` | `0` | Wipe entire Colima VM |
 | `THIN_TM_SNAPSHOTS` | `0` | Thin Time Machine snapshots |
-| `FORCE_DELETE_WUTHERING` | `0` | Hapus Wuthering Waves data |
+| `FORCE_DELETE_WUTHERING` | `0` | Delete Wuthering Waves data |
 
 ---
 
 ### `cleaner.sh` — Directory Size Viewer
-Tampilkan ukuran setiap item di level pertama suatu folder, diurutkan dari terkecil ke terbesar.
+Displays the size of every item at the first level of a folder, sorted from smallest to largest.
 
 ```bash
-# Lihat ukuran isi home directory
+# View home directory sizes
 bash cleaner.sh
 
-# Lihat ukuran isi folder tertentu
+# View sizes in a specific folder
 bash cleaner.sh ~/Library
 bash cleaner.sh ~/Library/Application\ Support
 ```
@@ -94,12 +94,11 @@ bash cleaner.sh ~/Library/Application\ Support
 ---
 
 ### `wa_cleaner.txt` — WhatsApp Full Wipe (Manual)
-Command untuk hapus total data WhatsApp Desktop (containers, group containers, caches, saved state). Berguna kalau WhatsApp bermasalah atau mau reinstall bersih.
+Commands to completely remove WhatsApp Desktop data (containers, group containers, caches, saved state). Useful when WhatsApp is misbehaving or for a clean reinstall.
 
-> ⚠️ Semua data lokal WhatsApp akan terhapus. Chat history tersimpan di server, tapi media lokal hilang.
+> ⚠️ All local WhatsApp data will be deleted. Chat history is stored on servers, but local media will be lost.
 
 ```bash
-# Copy-paste command dari wa_cleaner.txt, atau:
 bash -lc 'rm -rf ~/Library/Containers/net.whatsapp.WhatsApp/Data/*'
 bash -lc 'rm -rf ~/Library/Group\ Containers/group.net.whatsapp.WhatsApp/*'
 bash -lc 'rm -rf ~/Library/Caches/net.whatsapp.WhatsApp*'
@@ -115,7 +114,7 @@ bash -lc 'rm -rf ~/Library/Saved\ Application\ State/net.whatsapp.WhatsApp.saved
 git clone git@github.com:chairvus/mac-scripts.git
 cd mac-scripts
 
-# Kasih permission
+# Make executable
 chmod +x *.sh
 ```
 
